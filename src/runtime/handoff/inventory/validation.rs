@@ -78,7 +78,8 @@ pub(super) fn validate_inventory(slots: &[Slot], core_count: usize) -> hyper_os:
             FACTORY,
             Rights::CREATE_PROCESS
                 .union(Rights::CREATE_TASK_GROUP)
-                .union(Rights::LOCK_MEMORY),
+                .union(Rights::LOCK_MEMORY)
+                .union(Rights::RETAIN_PROCESS),
         ),
         (
             GROUP,
@@ -183,6 +184,7 @@ pub(in crate::runtime::handoff) fn validate_core_sources(
                     Rights::CREATE_PROCESS
                         .union(Rights::CREATE_TASK_GROUP)
                         .union(Rights::LOCK_MEMORY)
+                        .union(Rights::RETAIN_PROCESS)
                         .union(PROPAGATE),
                 )?;
                 require(

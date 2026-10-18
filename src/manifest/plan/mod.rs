@@ -4,7 +4,9 @@
 mod capabilities;
 mod graph;
 
-use super::model::{CapabilityOperation, MAX_CAPABILITIES_PER_SERVICE, MAX_SERVICES, Manifest};
+use super::model::{
+    CapabilityOperation, MAX_CAPABILITIES_PER_SERVICE, MAX_SERVICES, Manifest, Service,
+};
 
 /// Declarative ceiling for one authority resolved during process preparation.
 ///
@@ -99,6 +101,16 @@ pub trait AuthorityPolicy {
 
     /// Resolves a symbolic purpose in the contract selected by `image`.
     fn startup_purpose(&self, image: &str, name: &str) -> Option<StartupPurposeDeclaration>;
+
+    /// Resolves the deployed service contract. Bootstrap and formal images may
+    /// share a path while intentionally receiving different authorities.
+    fn service_purpose(
+        &self,
+        service: &Service<'_>,
+        name: &str,
+    ) -> Option<StartupPurposeDeclaration> {
+        self.startup_purpose(service.image(), name)
+    }
 
     /// Resolves one named right to exactly one bit.
     fn right(&self, name: &str) -> Option<u64>;

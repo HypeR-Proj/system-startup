@@ -120,6 +120,7 @@ const INSPECT_DETAILS: u64 = 1 << 33;
 const INSPECT: u64 = 0b0000_0100;
 const WAIT: u64 = 0b0000_1000;
 const CREATE_PROCESS: u64 = 0b0001_0000;
+const RETAIN_PROCESS: u64 = 1 << 37;
 const ATTACH_PROCESS: u64 = 0b0010_0000;
 const SPONSOR: u64 = 0b0100_0000;
 const DUPLICATE: u64 = 0b1000_0000;
@@ -270,7 +271,7 @@ impl AuthorityPolicy for Policy {
                 key: test_authority_key(source),
                 provider: None,
                 object_kind: 6,
-                rights: 0b1_0000_0000_0000 | 0b001_0000 | 0b1000_0000 | 0b1_0000_0000,
+                rights: CREATE_TASK_GROUP | CREATE_PROCESS | RETAIN_PROCESS | DUPLICATE | TRANSFER,
                 movable: false,
                 duplicable: true,
                 creatable: false,
@@ -396,7 +397,7 @@ impl AuthorityPolicy for Policy {
             ("/svc/session-manager", "process.task-factory") => (
                 304,
                 6,
-                CREATE_PROCESS | CREATE_TASK_GROUP | DUPLICATE | TRANSFER,
+                CREATE_PROCESS | CREATE_TASK_GROUP | RETAIN_PROCESS | DUPLICATE | TRANSFER,
             ),
             ("/bin/sh", "stdio.input") => (300, 4, WAIT | READ | DUPLICATE | TRANSFER | INSPECT),
             ("/bin/sh" | "/svc/session-manager" | "/svc/vm-manager", "stdio.output") => {
@@ -471,7 +472,7 @@ impl AuthorityPolicy for Policy {
                 WAIT | READ,
             ),
             ("/svc/vm-manager", "process.task-factory") => {
-                (304, 6, CREATE_PROCESS | CREATE_TASK_GROUP)
+                (304, 6, CREATE_PROCESS | CREATE_TASK_GROUP | RETAIN_PROCESS)
             }
             ("/svc/vm-manager", "process.resource-domain") => (306, 8, CREATE_RESOURCE_DOMAIN),
             ("/svc/vm-manager", "vm.creation-authority") => {
@@ -495,6 +496,7 @@ impl AuthorityPolicy for Policy {
             "inspect-details" => Some(INSPECT_DETAILS),
             "wait" => Some(WAIT),
             "create-process" => Some(CREATE_PROCESS),
+            "retain-process" => Some(RETAIN_PROCESS),
             "attach-process" => Some(ATTACH_PROCESS),
             "sponsor" => Some(SPONSOR),
             "duplicate" => Some(DUPLICATE),

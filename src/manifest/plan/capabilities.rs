@@ -51,7 +51,7 @@ pub(super) fn validate(
                 capability_index,
             )?;
             let purpose = policy
-                .startup_purpose(service.image, capability.purpose)
+                .service_purpose(service, capability.purpose)
                 .ok_or_else(|| {
                     error(
                         ValidationErrorKind::UnknownCapabilityPurpose,

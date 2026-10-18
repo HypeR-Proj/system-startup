@@ -75,11 +75,21 @@ pub(super) fn run_system(startup: &mut Startup<'_>) -> Result<(), Error> {
     inventory::validate_core_sources(&offer.slots, &core, providers, offer.storage_ready)
         .map_err(|_| Error::Source)?;
     let manifest = core.append_system(system).ok_or(Error::Source)?;
-    let plan = manifest::validate(&manifest, &BootstrapPolicy).map_err(|_| Error::Source)?;
+    let plan = manifest::validate(&manifest, &BootstrapPolicy).map_err(|error| {
+        report_failure("validating launch authority", &error);
+        Error::Source
+    })?;
     Runtime::preflight(&manifest).map_err(|_| Error::Source)?;
-    inventory::validate_service_sources(&offer.slots, &plan, core_count, providers)
-        .map_err(|_| Error::Source)?;
-    inventory::prepare_receive(&offer.slots, core_count).map_err(|_| Error::Source)?;
+    inventory::validate_service_sources(&offer.slots, &plan, core_count, providers).map_err(
+        |error| {
+            report_failure("validating offered service authority", &error);
+            Error::Source
+        },
+    )?;
+    inventory::prepare_receive(&offer.slots, core_count).map_err(|error| {
+        report_failure("validating the handoff inventory", &error);
+        Error::Source
+    })?;
     offer.slots.retain(|slot| slot.key != 37);
     let mut slots = offer
         .slots

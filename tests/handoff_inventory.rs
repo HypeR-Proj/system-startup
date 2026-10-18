@@ -42,6 +42,7 @@ fn role_rights(key: u16) -> Rights {
         FACTORY => Rights::CREATE_PROCESS
             .union(Rights::CREATE_TASK_GROUP)
             .union(Rights::LOCK_MEMORY)
+            .union(Rights::RETAIN_PROCESS)
             .union(propagate),
         GROUP | SYSTEM_GROUP => Rights::WAIT
             .union(Rights::INSPECT)

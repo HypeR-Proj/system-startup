@@ -42,6 +42,31 @@ fn ordinary_policy_service_gets_only_explicit_attenuated_authority() -> Result<(
 }
 
 #[test]
+fn custom_supervisor_requires_an_explicit_retention_grant() -> Result<(), String> {
+    let text = r#"{"format":"hyper.service-manifest","services":[{
+        "name":"supervisor", "image":"/svc/custom-supervisor", "critical":false,
+        "restart":"never", "after":[], "capabilities":[{
+            "source":"bootstrap.task-factory", "purpose":"process.task-factory",
+            "operation":"duplicate", "rights":["create-process","create-task-group","retain-process"]
+        }]
+    }]}"#;
+    for (text, expected) in [
+        (text.to_owned(), true),
+        (text.replace(",\"retain-process\"", ""), false),
+    ] {
+        let manifest = manifest::parse(&text).map_err(|error| format!("{error:?}"))?;
+        let plan = manifest::validate(&manifest, &BootstrapPolicy)
+            .map_err(|error| format!("{error:?}"))?;
+        let grant = plan.capability_grant(0, 0).ok_or("missing task factory")?;
+        assert_eq!(
+            grant.rights() & Rights::RETAIN_PROCESS.bits() != 0,
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn existing_installed_manifests_still_validate_against_real_bootstrap_policy() -> Result<(), String>
 {
     for text in [
@@ -51,6 +76,113 @@ fn existing_installed_manifests_still_validate_against_real_bootstrap_policy() -
     ] {
         let manifest = manifest::parse(text).map_err(|e| format!("{e:?}"))?;
         manifest::validate(&manifest, &BootstrapPolicy).map_err(|e| format!("{e:?}"))?;
+    }
+    Ok(())
+}
+
+#[test]
+fn generated_board_services_preserve_bootstrap_authority_bounds() -> Result<(), String> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let output = std::process::Command::new("python3")
+        .args([
+            "-B",
+            "-c",
+            r#"import json, sys
+from pathlib import Path
+sys.path.insert(0, 'scripts')
+from board_bootstrap import services
+from board_config import Board
+root = Path.cwd()
+print(json.dumps({path.stem: services(Board.load(path), root)
+                  for path in sorted((root / 'boards').glob('*.json'))}))
+"#,
+        ])
+        .current_dir(root)
+        .output()
+        .map_err(|error| error.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).into_owned());
+    }
+    let boards: std::collections::BTreeMap<String, serde_json::Value> =
+        serde_json::from_slice(&output.stdout).map_err(|error| error.to_string())?;
+    assert!(!boards.is_empty());
+    for (name, generated) in boards {
+        let text = generated.to_string();
+        let manifest = manifest::parse(&text).map_err(|error| format!("{name}: {error:?}"))?;
+        let plan = manifest::validate(&manifest, &BootstrapPolicy)
+            .map_err(|error| format!("{name}: {error:?}"))?;
+        for (service_index, service) in manifest.services().enumerate() {
+            if service.image() != super::FS_BACKEND_IMAGE {
+                continue;
+            }
+            let index = service
+                .capabilities()
+                .position(|cap| cap.purpose() == hyper_service::process::TASK_FACTORY_NAME)
+                .ok_or_else(|| format!("{name}: missing filesystem task factory"))?;
+            let grant = plan
+                .capability_grant(service_index, index)
+                .ok_or_else(|| format!("{name}: missing filesystem launch grant"))?;
+            assert_eq!(grant.rights() & Rights::RETAIN_PROCESS.bits(), 0, "{name}");
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn only_the_bootstrap_filesystem_predecessor_omits_retention() -> Result<(), String> {
+    for (phase, loader, retention, expected) in [
+        ("boot", "bootstrap", false, None),
+        (
+            "boot",
+            "bootstrap",
+            true,
+            Some(ValidationErrorKind::ExcessPurposeRights),
+        ),
+        (
+            "system",
+            "dynamic",
+            false,
+            Some(ValidationErrorKind::MissingRequiredRights),
+        ),
+        (
+            "system",
+            "bootstrap",
+            false,
+            Some(ValidationErrorKind::MissingRequiredRights),
+        ),
+        (
+            "boot",
+            "dynamic",
+            false,
+            Some(ValidationErrorKind::MissingRequiredRights),
+        ),
+        ("system", "dynamic", true, None),
+    ] {
+        let mut rights = vec!["create-process", "create-task-group"];
+        if retention {
+            rights.push("retain-process");
+        }
+        let text = serde_json::json!({
+            "format": "hyper.service-manifest",
+            "services": [{
+                "name": "filesystem", "image": "/svc/fs-backend",
+                "critical": false, "restart": "never", "after": [],
+                "phase": phase, "loader": loader,
+                "capabilities": [{
+                    "source": "bootstrap.task-factory", "purpose": "process.task-factory",
+                    "operation": "duplicate", "rights": rights,
+                }],
+            }],
+        })
+        .to_string();
+        let manifest = manifest::parse(&text).map_err(|error| format!("{error:?}"))?;
+        assert_eq!(
+            manifest::validate(&manifest, &BootstrapPolicy)
+                .err()
+                .map(|error| error.kind()),
+            expected,
+            "phase={phase} loader={loader} retention={retention}",
+        );
     }
     Ok(())
 }

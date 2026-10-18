@@ -4,7 +4,8 @@
 //! Immutable bootstrap authority and service-contract policy.
 
 use crate::manifest::{
-    AuthorityDeclaration, AuthorityKey, AuthorityPolicy, StartupPurposeDeclaration,
+    AuthorityDeclaration, AuthorityKey, AuthorityPolicy, Service, ServicePhase,
+    StartupPurposeDeclaration,
 };
 use hyper_os::handle::{
     ByteChannelObject, CapabilityChannelObject, ConsoleObject, CpuInspectorObject,
@@ -292,6 +293,32 @@ impl AuthorityPolicy for BootstrapPolicy {
         Some(contract_declaration(contract))
     }
 
+    fn service_purpose(
+        &self,
+        service: &Service<'_>,
+        name: &str,
+    ) -> Option<StartupPurposeDeclaration> {
+        if service.phase() == ServicePhase::Boot
+            && service.loader() == process_contract::LoaderKind::Bootstrap
+            && service
+                .image()
+                .strip_prefix("/boot")
+                .unwrap_or(service.image())
+                == FS_BACKEND_IMAGE
+            && name == process_contract::TASK_FACTORY_NAME
+        {
+            // This declaration describes the predecessor running from ramfs.
+            // The formal replacement gets its stronger supervisor authority
+            // separately in delegate_filesystem_launch during adoption.
+            return Some(contract_declaration(StartupContract::exact(
+                process_contract::TASK_FACTORY_NAME,
+                hyper_os::startup::TASK_FACTORY,
+                Rights::CREATE_PROCESS.union(Rights::CREATE_TASK_GROUP),
+            )));
+        }
+        self.startup_purpose(service.image(), name)
+    }
+
     fn right(&self, name: &str) -> Option<u64> {
         match name {
             "duplicate" => Some(Rights::DUPLICATE.bits()),
@@ -306,6 +333,7 @@ impl AuthorityPolicy for BootstrapPolicy {
             "set-attributes" => Some(Rights::SET_ATTRIBUTES.bits()),
             "lock-file" => Some(Rights::LOCK_FILE.bits()),
             "create-process" => Some(Rights::CREATE_PROCESS.bits()),
+            "retain-process" => Some(Rights::RETAIN_PROCESS.bits()),
             "create-task-group" => Some(Rights::CREATE_TASK_GROUP.bits()),
             "create-resource-domain" => Some(Rights::CREATE_RESOURCE_DOMAIN.bits()),
             "create-virtual-machine" => Some(Rights::CREATE_VIRTUAL_MACHINE.bits()),
@@ -416,6 +444,7 @@ const fn task_factory_rights() -> Rights {
         .union(Rights::TRANSFER)
         .union(Rights::INSPECT)
         .union(Rights::CREATE_PROCESS)
+        .union(Rights::RETAIN_PROCESS)
         .union(Rights::CREATE_TASK_GROUP)
 }
 
