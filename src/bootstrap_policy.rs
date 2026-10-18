@@ -185,7 +185,9 @@ impl AuthorityPolicy for BootstrapPolicy {
             BootstrapAuthority::DeviceAuthority => duplicate_authority(
                 authority,
                 DeviceAssignmentAuthorityObject::KIND.as_raw(),
-                Rights::INSPECT
+                Rights::ASSIGN_DEVICE
+                    .union(Rights::MAP_DMA)
+                    .union(Rights::INSPECT)
                     .union(Rights::DUPLICATE)
                     .union(Rights::TRANSFER),
             ),
@@ -328,6 +330,8 @@ impl AuthorityPolicy for BootstrapPolicy {
             "inspect-details" => Some(Rights::INSPECT_DETAILS.bits()),
             "read" => Some(Rights::READ.bits()),
             "write" => Some(Rights::WRITE.bits()),
+            "assign-device" => Some(Rights::ASSIGN_DEVICE.bits()),
+            "map-dma" => Some(Rights::MAP_DMA.bits()),
             "execute" => Some(Rights::EXECUTE.bits()),
             "protect" => Some(Rights::PROTECT.bits()),
             "set-attributes" => Some(Rights::SET_ATTRIBUTES.bits()),
