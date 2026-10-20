@@ -325,7 +325,7 @@ impl AuthorityPolicy for Policy {
                 key: test_authority_key(source),
                 provider: None,
                 object_kind: 19,
-                rights: 0b1_1000_0100,
+                rights: 0b1_1000_0100 | INSPECT_DETAILS | (1 << 31),
                 movable: false,
                 duplicable: true,
                 creatable: false,
@@ -435,9 +435,11 @@ impl AuthorityPolicy for Policy {
             ("/bin/sh" | "/svc/session-manager", "process.memory-inspector") => {
                 (309, 18, DUPLICATE | TRANSFER | INSPECT)
             }
-            ("/bin/sh" | "/svc/session-manager", "process.cpu-inspector") => {
-                (310, 19, DUPLICATE | TRANSFER | INSPECT)
-            }
+            ("/bin/sh" | "/svc/session-manager", "process.cpu-inspector") => (
+                310,
+                19,
+                DUPLICATE | TRANSFER | INSPECT | INSPECT_DETAILS | (1 << 31),
+            ),
             ("/bin/sh" | "/svc/session-manager", "process.environment-directory") => (
                 317,
                 5,

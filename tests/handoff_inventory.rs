@@ -56,7 +56,11 @@ fn role_rights(key: u16) -> Rights {
             .union(Rights::INSPECT_DETAILS)
             .union(Rights::DERIVE)
             .union(propagate),
-        MEMORY_INSPECTOR | CPU_INSPECTOR => Rights::INSPECT.union(propagate),
+        MEMORY_INSPECTOR => Rights::INSPECT.union(propagate),
+        CPU_INSPECTOR => Rights::INSPECT
+            .union(Rights::SET_ATTRIBUTES)
+            .union(Rights::INSPECT_DETAILS)
+            .union(propagate),
         VM_AUTHORITY => Rights::CREATE_VIRTUAL_MACHINE
             .union(Rights::DERIVE)
             .union(Rights::INSPECT)

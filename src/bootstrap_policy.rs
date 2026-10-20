@@ -175,7 +175,9 @@ impl AuthorityPolicy for BootstrapPolicy {
             BootstrapAuthority::CpuInspector => duplicate_authority(
                 authority,
                 CpuInspectorObject::KIND.as_raw(),
-                observation_rights(),
+                observation_rights()
+                    .union(Rights::SET_ATTRIBUTES)
+                    .union(Rights::INSPECT_DETAILS),
             ),
             BootstrapAuthority::VmAuthority => duplicate_authority(
                 authority,
