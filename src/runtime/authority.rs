@@ -45,7 +45,7 @@ pub(super) struct AuthorityInventory {
     pub(super) log_server: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) log_connector: OwnedHandle<CapabilityChannelObject>,
     pub(super) console_drain: Option<OwnedHandle<ByteChannelObject>>,
-    pub(super) io_handoff: Option<OwnedHandle<CapabilityChannelObject>>,
+    pub(super) storage_handoff: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) filesystem_handoff: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) io_broker_server: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) io_broker_client: Option<OwnedHandle<CapabilityChannelObject>>,

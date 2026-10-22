@@ -78,9 +78,12 @@ impl Runtime {
         )
         .map_err(LaunchError::service_operation)?;
         self.progress("ownership-transferred")?;
-        let provider = |role: &str| config.policy.providers.iter().find(|p| p.role == role);
+        let storage_successor = self.storage_successor.clone();
+        let provider = |role: &str| config.provider(role, storage_successor.as_deref());
         let mut adopted = true;
-        if let Some(console) = provider("console") {
+        if self.providers[0].is_some()
+            && let Some(console) = provider("console")
+        {
             let p = config
                 .program(&console.component)
                 .map_err(|_| LaunchError::InvalidPlan)?;
@@ -107,8 +110,10 @@ impl Runtime {
             self.launch_application(app, manifest, plan, config, manager, false)?;
         }
         let mut storage_adopted = self.bootstrap_storage_ready;
-        for (role, name) in [(1, "io"), (2, "filesystem")] {
-            if let Some(provider) = provider(name) {
+        for (role, name) in [(1, "storage"), (2, "filesystem")] {
+            if self.providers[role].is_some()
+                && let Some(provider) = provider(name)
+            {
                 let p = config
                     .program(&provider.component)
                     .map_err(|_| LaunchError::InvalidPlan)?;
@@ -119,12 +124,7 @@ impl Runtime {
         }
         self.retirement_ready = adopted
             && self.providers.iter().enumerate().all(|(role, index)| {
-                index.is_none()
-                    || config
-                        .policy
-                        .providers
-                        .iter()
-                        .any(|p| p.role == ["console", "io", "filesystem"][role])
+                index.is_none() || provider(["console", "storage", "filesystem"][role]).is_some()
             });
         self.progress(if self.retirement_ready {
             "core-providers-adopted"

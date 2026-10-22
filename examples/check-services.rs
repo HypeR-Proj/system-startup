@@ -66,7 +66,10 @@ fn check() -> Result<(), String> {
         .as_ref()
         .map(fs::read_to_string)
         .transpose()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| error.to_string())?
+        .as_deref()
+        .map(supervision_description)
+        .transpose()?;
     let manifest = match core_text.as_ref() {
         Some(core) => manifest::parse(core)
             .map_err(|error| format!("core: {error:?}"))?
@@ -91,6 +94,31 @@ fn check() -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Bootstrap validates its own provider grants. Formal startup receives only
+/// supervisor labels, exactly as the runtime handoff description does; applying
+/// formal image policy to a native bootstrap plugin would reject valid sources.
+fn supervision_description(text: &str) -> Result<String, String> {
+    let core = manifest::parse(text).map_err(|error| format!("core: {error:?}"))?;
+    let services: Vec<_> = core
+        .services()
+        .map(|service| {
+            serde_json::json!({
+                "name": service.name(),
+                "image": service.image(),
+                "critical": service.critical(),
+                "restart": "never",
+                "phase": "boot",
+                "after": [],
+                "capabilities": [],
+            })
+        })
+        .collect();
+    serde_json::to_string(&serde_json::json!({
+        "format": "hyper.service-manifest", "services": services,
+    }))
+    .map_err(|error| error.to_string())
 }
 
 fn main() -> ExitCode {

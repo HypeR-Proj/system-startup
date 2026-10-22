@@ -50,6 +50,7 @@ struct Runtime {
     supervisors: SupervisorSet,
     bootstrap_storage_ready: bool,
     providers: [Option<usize>; 3],
+    storage_successor: Option<String>,
     core_count: usize,
     retired_processes: Vec<hyper_os::OwnedHandle<hyper_os::handle::ProcessObject>>,
     // Started replacements are not mandatory services until READY confirms

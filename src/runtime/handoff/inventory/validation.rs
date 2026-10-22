@@ -166,8 +166,11 @@ pub(in crate::runtime::handoff) fn validate_core_sources(
             }
             1 => require(
                 slots,
-                IO_HANDOFF,
-                Rights::READ.union(Rights::WAIT).union(Rights::TRANSFER),
+                STORAGE_HANDOFF,
+                Rights::READ
+                    .union(Rights::WRITE)
+                    .union(Rights::WAIT)
+                    .union(Rights::TRANSFER),
             )?,
             2 => {
                 require(

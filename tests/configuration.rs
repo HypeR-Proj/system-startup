@@ -78,7 +78,7 @@ fn adoption_requires_residency_before_ownership_commit() -> Result<(), Box<dyn s
         let mut c = configuration_with(vec![
             json!({"name":"io", "program":{"image":"/svc/io-runtime","prepared":true,"resident":resident}}),
         ])?;
-        c.policy.providers = serde_json::from_value(json!([{"role":"io","component":"/io"}]))?;
+        c.policy.providers = serde_json::from_value(json!([{"role":"storage","component":"/io"}]))?;
         if resident {
             c.validate()?;
         } else {
@@ -88,6 +88,42 @@ fn adoption_requires_residency_before_ownership_commit() -> Result<(), Box<dyn s
             );
         }
     }
+    Ok(())
+}
+
+#[test]
+fn storage_profiles_select_only_declared_resident_replacements()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut c = configuration_with(vec![
+        json!({"name":"io", "program":{"image":"/svc/io-runtime","prepared":true,"resident":true}}),
+        json!({"name":"driver", "program":{"image":"/svc/block-driver","prepared":true,"resident":true}}),
+    ])?;
+    c.policy.providers = serde_json::from_value(json!([
+        {"role":"storage","component":"/io"},
+        {"role":"storage","component":"/driver"}
+    ]))?;
+    c.validate()?;
+    for component in ["/io", "/driver"] {
+        c.validate_adoption([None, Some(0), None], Some(component))?;
+        assert_eq!(
+            c.provider("storage", Some(component))
+                .map(|p| p.component.as_str()),
+            Some(component)
+        );
+    }
+    c.validate_adoption([None; 3], None)?;
+    assert!(c.provider("storage", None).is_none());
+    for (offered, successor) in [
+        ([None, Some(0), None], None),
+        ([None, Some(0), None], Some("/undeclared")),
+        ([None; 3], Some("/io")),
+        ([Some(0), None, None], None),
+        ([None, None, Some(0)], None),
+    ] {
+        assert!(c.validate_adoption(offered, successor).is_err());
+    }
+    c.policy.mounts = Some("/mounts".into());
+    assert!(c.validate_adoption([None; 3], None).is_err());
     Ok(())
 }
 

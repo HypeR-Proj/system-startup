@@ -61,6 +61,12 @@ pub(super) fn run_system(startup: &mut Startup<'_>) -> Result<(), Error> {
         report_failure("validating startup configuration", &error);
         Error::Source
     })?;
+    configuration
+        .validate_adoption(providers, offer.storage_successor.as_deref())
+        .map_err(|error| {
+            report_failure("validating provider replacements", &error);
+            Error::Source
+        })?;
     let text = configuration.launch_manifest().map_err(|_| Error::Source)?;
     configuration
         .validate_export_inventory(offer.slots.iter().map(|s| (s.key, s.rights)))
@@ -132,6 +138,7 @@ pub(super) fn run_system(startup: &mut Startup<'_>) -> Result<(), Error> {
     })?;
     runtime.bootstrap_storage_ready = offer.storage_ready;
     runtime.providers = providers;
+    runtime.storage_successor = offer.storage_successor;
     runtime.core_count = core_count;
     eprintln!("HypeR system-startup: core supervision adopted");
     runtime.retirement_path = Some(offer.boot_root);

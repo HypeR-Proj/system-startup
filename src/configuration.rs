@@ -202,8 +202,8 @@ impl Configuration {
         let mut paths = std::collections::BTreeSet::new();
         let mut roles = std::collections::BTreeSet::new();
         for provider in &self.policy.providers {
-            if !matches!(provider.role.as_str(), "console" | "io" | "filesystem")
-                || !roles.insert(&provider.role)
+            if !matches!(provider.role.as_str(), "console" | "storage" | "filesystem")
+                || (provider.role != "storage" && !roles.insert(&provider.role))
             {
                 return Err("duplicate or unknown provider role".into());
             }
@@ -255,6 +255,40 @@ impl Configuration {
             }
         }
         Ok(())
+    }
+
+    /// A profile selects only a declared formal storage replacement. Unused
+    /// candidates stay stopped; every offered owner requires an exact match.
+    pub(crate) fn validate_adoption(
+        &self,
+        offered: [Option<usize>; 3],
+        storage_successor: Option<&str>,
+    ) -> Result<(), String> {
+        if offered[1].is_some() != storage_successor.is_some() {
+            return Err("storage owner and successor must be offered together".into());
+        }
+        if self.policy.mounts.is_some() && offered[2].is_none() {
+            return Err("formal mounts require an offered filesystem provider".into());
+        }
+        for (index, role) in ["console", "storage", "filesystem"].into_iter().enumerate() {
+            if offered[index].is_some() && self.provider(role, storage_successor).is_none() {
+                return Err(format!(
+                    "{role}: no permitted replacement for offered provider"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn provider(
+        &self,
+        role: &str,
+        storage_successor: Option<&str>,
+    ) -> Option<&Provider> {
+        self.policy.providers.iter().find(|provider| {
+            provider.role == role
+                && (role != "storage" || Some(provider.component.as_str()) == storage_successor)
+        })
     }
 
     /// Check export ceilings against the actual offered inventory before the

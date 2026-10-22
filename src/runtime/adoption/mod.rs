@@ -39,7 +39,7 @@ impl Runtime {
                 .as_raw();
         let result = match role {
             0 => self.adopt_console(index, name, program, until),
-            1 => self.adopt_io(index, name, program, until),
+            1 => self.adopt_storage(index, name, program, until),
             _ => self.adopt_filesystems(index, name, program, until),
         };
         if result.is_err() {
@@ -47,7 +47,7 @@ impl Runtime {
             self.retirement_ready = false;
             // An unstarted successor must not leave the predecessor waiting
             // forever for a migration handshake; close unopened rendezvous.
-            self.launcher.authorities.io_handoff.take();
+            self.launcher.authorities.storage_handoff.take();
             self.launcher.authorities.filesystem_handoff.take();
             eprintln!(
                 "HypeR system-startup: provider adoption failed: bootstrap retirement disabled; {name}: {result:?}"
@@ -95,7 +95,7 @@ impl Runtime {
         Ok(())
     }
 
-    fn adopt_io(
+    fn adopt_storage(
         &mut self,
         index: usize,
         name: &str,
@@ -105,28 +105,23 @@ impl Runtime {
         let endpoint = self
             .launcher
             .authorities
-            .io_handoff
+            .storage_handoff
             .take()
             .ok_or(hyper_os::Error::MissingHandle)?;
-        let channel = CapabilityChannel::from_handle(endpoint);
-        let description = receive_description(&channel, b"HYPER-IO-DESCRIBE/2", until)?;
         let (ready, reader) = hyper_os::channel::create_pair()?;
         let builder = self.provider_builder(name, program, Some(name))?;
+        // Storage implementations own their description and transfer protocol.
+        // The coordinator transports authority without interpreting VM state,
+        // device handles or driver-specific migration records.
         move_handle(
             &builder,
-            channel.into_handle(),
+            endpoint,
             0x8008_0010,
-            Rights::READ.union(Rights::WAIT),
-        )?;
-        move_handle(
-            &builder,
-            description,
-            0x8008_0012,
-            Rights::READ.union(Rights::INSPECT),
+            Rights::READ.union(Rights::WRITE).union(Rights::WAIT),
         )?;
         move_handle(&builder, ready, READY, Rights::WRITE.union(Rights::WAIT))?;
         self.start_provider(index, builder)?;
-        ready_message(&reader, b"HYPER-IO-READY/2", until)?;
+        ready_message(&reader, ADOPTED, until)?;
         self.confirm_provider(index)
     }
 

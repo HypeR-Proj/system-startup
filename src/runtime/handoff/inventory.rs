@@ -45,7 +45,7 @@ const SYSTEM_GROUP: u16 = 30;
 const CONSOLE: u16 = 31;
 const BOOT_ENVIRONMENT: u16 = 32;
 const SYSTEM_ENVIRONMENT: u16 = 33;
-const IO_HANDOFF: u16 = 34;
+const STORAGE_HANDOFF: u16 = 34;
 const FILESYSTEM_HANDOFF: u16 = 35;
 const CONSOLE_DRAIN: u16 = 36;
 const ROOT_TRANSITION: u16 = 37;
@@ -82,7 +82,7 @@ fn receive_slot(slot: &Slot) -> hyper_os::Result<CapabilityReceiveSlot> {
         RAW_CONTROL_SERVER | RAW_CONTROLLER | LOG_SERVER => {
             CapabilityReceiveSlot::new::<CapabilityChannelObject>(rights)
         }
-        IO_HANDOFF | FILESYSTEM_HANDOFF => {
+        STORAGE_HANDOFF | FILESYSTEM_HANDOFF => {
             CapabilityReceiveSlot::new::<CapabilityChannelObject>(rights)
         }
         IO_BROKER_SERVER => CapabilityReceiveSlot::new::<CapabilityChannelObject>(rights),
@@ -155,7 +155,7 @@ pub(super) fn adopt(
         raw_controller: r.optional(RAW_CONTROLLER)?,
         log_server: r.optional(LOG_SERVER)?,
         console_drain: r.optional(CONSOLE_DRAIN)?,
-        io_handoff: r.optional(IO_HANDOFF)?,
+        storage_handoff: r.optional(STORAGE_HANDOFF)?,
         filesystem_handoff: r.optional(FILESYSTEM_HANDOFF)?,
         io_broker_server: r.optional(IO_BROKER_SERVER)?,
         io_broker_client: r.optional(IO_BROKER_CLIENT)?,
@@ -184,6 +184,7 @@ pub(super) fn adopt(
         _boot_group: r.required(GROUP)?,
         bootstrap_storage_ready: false,
         providers: [None; 3],
+        storage_successor: None,
         core_count: 0,
         retired_processes: Vec::new(),
         pending_provider: None,

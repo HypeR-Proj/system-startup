@@ -289,7 +289,11 @@ fn ready_provider_requires_both_owner_and_handoff_endpoint() -> Result<(), Strin
         "format":"hyper.service-manifest",
         "services":[{"name":"provider","image":"/svc/io-runtime","critical":false,"restart":"never","phase":"boot","after":[],"capabilities":[]}]}
     "#).map_err(|error| format!("{error:?}"))?;
-    for (role, endpoint) in [(0, CONSOLE_DRAIN), (1, IO_HANDOFF), (2, FILESYSTEM_HANDOFF)] {
+    for (role, endpoint) in [
+        (0, CONSOLE_DRAIN),
+        (1, STORAGE_HANDOFF),
+        (2, FILESYSTEM_HANDOFF),
+    ] {
         let mut providers = [None; 3];
         providers[role] = Some(0);
         assert!(
@@ -305,6 +309,33 @@ fn ready_provider_requires_both_owner_and_handoff_endpoint() -> Result<(), Strin
         slot.rights = Rights::TRANSFER.bits();
         assert!(validate_core_sources(&slots, &core, providers, true).is_err());
     }
+    Ok(())
+}
+
+#[test]
+fn storage_adoption_needs_no_vm_authority_but_requires_bidirectional_migration()
+-> Result<(), String> {
+    let core = crate::manifest::parse(
+        r#"{
+        "format":"hyper.service-manifest",
+        "services":[{"name":"block","image":"/svc/native-block","critical":true,
+        "restart":"never","phase":"boot","after":[],"capabilities":[]}]}
+    "#,
+    )
+    .map_err(|error| format!("{error:?}"))?;
+    let mut slots = with_roles(&[PROCESS_BASE, STORAGE_HANDOFF]);
+    assert!(
+        slots
+            .iter()
+            .all(|slot| slot.key != VM_AUTHORITY && slot.key != DEVICE)
+    );
+    assert!(validate_core_sources(&slots, &core, [None, Some(0), None], true).is_ok());
+    let channel = slots
+        .iter_mut()
+        .find(|slot| slot.key == STORAGE_HANDOFF)
+        .ok_or("endpoint")?;
+    channel.rights &= !Rights::WRITE.bits();
+    assert!(validate_core_sources(&slots, &core, [None, Some(0), None], true).is_err());
     Ok(())
 }
 

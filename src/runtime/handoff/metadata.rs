@@ -19,6 +19,7 @@ pub(super) struct PreparedOffer {
     pub(super) root_mount: u64,
     pub(super) boot_root: String,
     services: Vec<CoreService>,
+    pub(super) storage_successor: Option<String>,
     pub(super) storage_ready: bool,
     pub(super) slots: Vec<Slot>,
 }
@@ -41,13 +42,16 @@ impl PreparedOffer {
             };
             let slot = match role.as_str() {
                 "console" => 0,
-                "io" => 1,
+                "storage" => 1,
                 "filesystem" => 2,
                 _ => return Err(hyper_os::Error::InvalidResponse),
             };
             if indices[slot].replace(index).is_some() {
                 return Err(hyper_os::Error::InvalidResponse);
             }
+        }
+        if indices[1].is_some() != self.storage_successor.is_some() {
+            return Err(hyper_os::Error::InvalidResponse);
         }
         Ok(indices)
     }
@@ -91,7 +95,7 @@ impl PreparedOffer {
         snapshot.read_exact_at(8, &mut bytes)?;
         let offer: Self =
             serde_json::from_slice(&bytes).map_err(|_| hyper_os::Error::InvalidResponse)?;
-        if offer.version != 3 || offer.services.len() > crate::manifest::MAX_SERVICES {
+        if offer.version != 4 || offer.services.len() > crate::manifest::MAX_SERVICES {
             return Err(hyper_os::Error::InvalidResponse);
         }
         if offer.root_mount == 0
