@@ -74,6 +74,7 @@ pub struct Service<'manifest> {
     pub(super) name: &'manifest str,
     pub(super) image: &'manifest str,
     pub(super) critical: bool,
+    pub(super) scheduling: Option<hyper_component_config::Scheduling>,
     pub(super) restart: RestartPolicy,
     pub(super) phase: ServicePhase,
     pub(super) loader: hyper_service::process::LoaderKind,

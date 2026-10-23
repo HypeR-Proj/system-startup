@@ -76,7 +76,8 @@ pub(super) fn validate_inventory(slots: &[Slot], core_count: usize) -> hyper_os:
         (ROOT_TRANSITION, Rights::WRITE.union(Rights::TRANSFER)),
         (
             FACTORY,
-            Rights::CREATE_PROCESS
+            hyper_os::scheduling::RIGHTS
+                .union(Rights::CREATE_PROCESS)
                 .union(Rights::CREATE_TASK_GROUP)
                 .union(Rights::LOCK_MEMORY)
                 .union(Rights::RETAIN_PROCESS),
@@ -184,7 +185,8 @@ pub(in crate::runtime::handoff) fn validate_core_sources(
                 require(
                     slots,
                     FACTORY,
-                    Rights::CREATE_PROCESS
+                    hyper_os::scheduling::RIGHTS
+                        .union(Rights::CREATE_PROCESS)
                         .union(Rights::CREATE_TASK_GROUP)
                         .union(Rights::LOCK_MEMORY)
                         .union(Rights::RETAIN_PROCESS)

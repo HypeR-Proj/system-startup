@@ -80,6 +80,8 @@ impl Runtime {
             a.factory.as_handle_ref(),
             startup::TASK_FACTORY.as_raw(),
             Rights::CREATE_PROCESS
+                .union(Rights::SCHED_CLASS)
+                .union(Rights::SCHED_PRIORITY)
                 .union(Rights::RETAIN_PROCESS)
                 .union(Rights::LOCK_MEMORY)
                 .union(Rights::CREATE_TASK_GROUP)

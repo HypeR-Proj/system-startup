@@ -217,6 +217,7 @@ impl<'manifest> Parser<'manifest> {
         let mut name = None;
         let mut image = None;
         let mut critical = None;
+        let mut scheduling = None;
         let mut restart = None;
         let mut phase = None;
         let mut loader = None;
@@ -240,6 +241,20 @@ impl<'manifest> Parser<'manifest> {
                     self.parse_string(MAX_IMAGE_PATH_BYTES)?,
                     field_offset,
                 )?,
+                "scheduling" => {
+                    let mut values =
+                        serde_json::Deserializer::from_slice(&self.bytes[self.position..])
+                            .into_iter::<hyper_component_config::Scheduling>();
+                    let value = values
+                        .next()
+                        .and_then(Result::ok)
+                        .ok_or_else(|| self.error(ParseErrorKind::UnexpectedToken))?;
+                    value
+                        .validate()
+                        .map_err(|_| self.error(ParseErrorKind::InvalidEnum))?;
+                    self.position += values.byte_offset();
+                    assign_once(&mut scheduling, value, field_offset)?;
+                }
                 "critical" => {
                     let value = self.parse_bool()?;
                     assign_once(&mut critical, value, field_offset)?;
@@ -290,6 +305,7 @@ impl<'manifest> Parser<'manifest> {
             name: name.ok_or_else(|| self.error(ParseErrorKind::MissingField))?,
             image: image.ok_or_else(|| self.error(ParseErrorKind::MissingField))?,
             critical: critical.ok_or_else(|| self.error(ParseErrorKind::MissingField))?,
+            scheduling,
             restart: restart.ok_or_else(|| self.error(ParseErrorKind::MissingField))?,
             phase: phase.unwrap_or(ServicePhase::Boot),
             loader: loader.unwrap_or(hyper_service::process::LoaderKind::Dynamic),

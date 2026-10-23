@@ -39,7 +39,8 @@ fn role_rights(key: u16) -> Rights {
         ROOT_DIRECTORY => hyper_service::process::SHELL_ROOT_DIRECTORY_CONTRACT
             .required_rights()
             .union(Rights::MANAGE_NAMESPACE),
-        FACTORY => Rights::CREATE_PROCESS
+        FACTORY => hyper_os::scheduling::RIGHTS
+            .union(Rights::CREATE_PROCESS)
             .union(Rights::CREATE_TASK_GROUP)
             .union(Rights::LOCK_MEMORY)
             .union(Rights::RETAIN_PROCESS)
@@ -61,7 +62,8 @@ fn role_rights(key: u16) -> Rights {
             .union(Rights::SET_ATTRIBUTES)
             .union(Rights::INSPECT_DETAILS)
             .union(propagate),
-        VM_AUTHORITY => Rights::CREATE_VIRTUAL_MACHINE
+        VM_AUTHORITY => hyper_os::scheduling::RIGHTS
+            .union(Rights::CREATE_VIRTUAL_MACHINE)
             .union(Rights::DERIVE)
             .union(Rights::INSPECT)
             .union(propagate),

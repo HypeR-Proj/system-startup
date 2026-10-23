@@ -58,6 +58,83 @@ const VALID: &str = r#"
 "#;
 
 #[test]
+fn scheduling_configuration_is_parsed_before_following_service_fields() {
+    let configured = VALID.replace(
+        "\"image\": \"/svc/vmm\",",
+        r#""image": "/svc/vmm", "scheduling": {
+            "role": "priority", "band": 64,
+            "policy": {"kind": "fair", "weight": 16, "quantum_ns": 5000000}
+        },"#,
+    );
+    let parsed = parse(&configured);
+    assert!(parsed.is_ok());
+    let Ok(manifest) = parsed else { return };
+    let Some(service) = manifest.service(0) else {
+        panic!("configured service missing");
+    };
+    let Some(scheduling) = service.scheduling else {
+        panic!("scheduling configuration missing");
+    };
+    assert_eq!(scheduling.band, 64);
+    assert_eq!(
+        scheduling.role,
+        hyper_component_config::SchedulingRole::Priority
+    );
+    assert_eq!(
+        scheduling.policy,
+        hyper_component_config::SchedulingPolicy::Fair {
+            weight: 16,
+            quantum_ns: 5_000_000,
+            backend: hyper_component_config::FairBackend::Default,
+        }
+    );
+    assert_eq!(service.restart(), super::RestartPolicy::OnFailure);
+    assert_eq!(
+        service.dependencies().collect::<std::vec::Vec<_>>(),
+        ["network"]
+    );
+    assert!(manifest.service(1).is_some());
+}
+
+#[test]
+fn scheduling_configuration_rejects_invalid_and_duplicate_fields() {
+    let valid = r#"{"role":"priority","band":64,"policy":{"kind":"fifo","priority":10}}"#;
+    for (field, expected) in [
+        (
+            format!("\"scheduling\": {valid}, \"scheduling\": {valid},"),
+            ParseErrorKind::DuplicateField,
+        ),
+        (
+            String::from(
+                r#""scheduling":{"role":"priority","band":64,"policy":{"kind":"fair","weight":0,"quantum_ns":5000000}},"#,
+            ),
+            ParseErrorKind::InvalidEnum,
+        ),
+        (
+            String::from(
+                r#""scheduling":{"role":"priority","band":64,"policy":{"kind":"fifo","priority":10,"unexpected":0}},"#,
+            ),
+            ParseErrorKind::UnexpectedToken,
+        ),
+        (
+            String::from(
+                r#""scheduling":{"role":"priority","band":64,"band":63,"policy":{"kind":"fifo","priority":10}},"#,
+            ),
+            ParseErrorKind::UnexpectedToken,
+        ),
+    ] {
+        let configured = VALID.replace(
+            "\"image\": \"/svc/vmm\",",
+            &format!("\"image\": \"/svc/vmm\", {field}"),
+        );
+        assert_eq!(
+            parse(&configured).map_err(|error| error.kind()),
+            Err(expected)
+        );
+    }
+}
+
+#[test]
 fn service_phases_default_to_boot_and_reject_reverse_dependencies() {
     let parsed = parse(VALID);
     assert!(parsed.is_ok());
