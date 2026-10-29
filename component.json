@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "name": "system-startup",
+  "kind": "service",
+  "origin": {
+    "repository": "https://github.com/roolrz/HypeR",
+    "commit": "8d42d047058a2b58a291803700e86487fb723f7a"
+  },
+  "sources": {
+    "Cargo.toml": "svc/system-startup/Cargo.toml",
+    "component.mk": "svc/system-startup/component.mk",
+    "examples/check-services.rs": "svc/system-startup/examples/check-services.rs",
+    "src/bootstrap_policy.rs": "svc/system-startup/src/bootstrap_policy.rs",
+    "src/configuration.rs": "svc/system-startup/src/configuration.rs",
+    "src/diagnostics.rs": "svc/system-startup/src/diagnostics.rs",
+    "src/lib.rs": "svc/system-startup/src/lib.rs",
+    "src/main.rs": "svc/system-startup/src/main.rs",
+    "src/manifest/mod.rs": "svc/system-startup/src/manifest/mod.rs",
+    "src/manifest/model.rs": "svc/system-startup/src/manifest/model.rs",
+    "src/manifest/parse.rs": "svc/system-startup/src/manifest/parse.rs",
+    "src/manifest/plan/capabilities.rs": "svc/system-startup/src/manifest/plan/capabilities.rs",
+    "src/manifest/plan/graph.rs": "svc/system-startup/src/manifest/plan/graph.rs",
+    "src/manifest/plan/mod.rs": "svc/system-startup/src/manifest/plan/mod.rs",
+    "src/runtime.rs": "svc/system-startup/src/runtime.rs",
+    "src/runtime/adoption/mod.rs": "svc/system-startup/src/runtime/adoption/mod.rs",
+    "src/runtime/adoption/process.rs": "svc/system-startup/src/runtime/adoption/process.rs",
+    "src/runtime/adoption/retirement.rs": "svc/system-startup/src/runtime/adoption/retirement.rs",
+    "src/runtime/authority.rs": "svc/system-startup/src/runtime/authority.rs",
+    "src/runtime/fleet.rs": "svc/system-startup/src/runtime/fleet.rs",
+    "src/runtime/handoff.rs": "svc/system-startup/src/runtime/handoff.rs",
+    "src/runtime/handoff/inventory.rs": "svc/system-startup/src/runtime/handoff/inventory.rs",
+    "src/runtime/handoff/inventory/validation.rs": "svc/system-startup/src/runtime/handoff/inventory/validation.rs",
+    "src/runtime/handoff/metadata.rs": "svc/system-startup/src/runtime/handoff/metadata.rs",
+    "src/runtime/launcher.rs": "svc/system-startup/src/runtime/launcher.rs",
+    "src/runtime/provision.rs": "svc/system-startup/src/runtime/provision.rs",
+    "src/runtime/report.rs": "svc/system-startup/src/runtime/report.rs",
+    "src/runtime/sequence.rs": "svc/system-startup/src/runtime/sequence.rs",
+    "src/runtime/stdio.rs": "svc/system-startup/src/runtime/stdio.rs",
+    "src/runtime/supervisor.rs": "svc/system-startup/src/runtime/supervisor.rs",
+    "src/supervision.rs": "svc/system-startup/src/supervision.rs",
+    "tests/bootstrap.rs": "svc/system-startup/tests/bootstrap.rs",
+    "tests/bootstrap_policy.rs": "svc/system-startup/tests/bootstrap_policy.rs",
+    "tests/configuration.rs": "svc/system-startup/tests/configuration.rs",
+    "tests/diagnostics.rs": "svc/system-startup/tests/diagnostics.rs",
+    "tests/handoff_inventory.rs": "svc/system-startup/tests/handoff_inventory.rs",
+    "tests/manifest.rs": "svc/system-startup/tests/manifest.rs",
+    "tests/provision.rs": "svc/system-startup/tests/provision.rs",
+    "tests/retirement.rs": "svc/system-startup/tests/retirement.rs",
+    "tests/supervision.rs": "svc/system-startup/tests/supervision.rs"
+  },
+  "SPDX-FileCopyrightText": "2026 roolrz",
+  "SPDX-License-Identifier": "Apache-2.0",
+  "mounts": {
+    "": "svc/system-startup"
+  },
+  "packages": [
+    "hyper-system-startup"
+  ],
+  "tests": [
+    [
+      "make",
+      "app-test",
+      "APP_TEST_PACKAGE=hyper-system-startup"
+    ]
+  ]
+}

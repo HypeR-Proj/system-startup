@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 roolrz
+# SPDX-License-Identifier: Apache-2.0
+
+config SYSTEM_APP_SYSTEM_STARTUP
+    bool "system-startup (/svc/system-startup)"
+    default y
+    depends on SYSTEM_APP_COMPONENT_MANAGER && SYSTEM_APP_CONSOLE_RAW_SYSTEM && SYSTEM_APP_SVC_JOURNAL && SYSTEM_APP_SVC_BOOTSTRAP_RETIRE
+    help
+        Build and deploy hyper-system-startup at /svc/system-startup.
+
