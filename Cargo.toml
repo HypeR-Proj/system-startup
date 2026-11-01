@@ -5,54 +5,46 @@ bin = [{name = "hyper-system-startup", path = "src/main.rs", test = false, bench
 
 [package]
 name = "hyper-system-startup"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/HypeR-Proj/system-startup"
 publish = false
 autotests = false
-workspace = "../../app"
-
-[features]
-default = ["shared"]
-shared = ["dep:hyper-vm-policy-shared"]
 
 [dependencies]
 
 [dependencies.hyper-os]
-workspace = true
+version = "=0.0.0"
 
 [dependencies.hyper-rt]
-workspace = true
+version = "=0.0.0"
 features = ["std"]
 
 [dependencies.hyper-service]
-workspace = true
+path = "../../lib/service"
 
 [dependencies.hyper-journal]
-workspace = true
+path = "../../lib/journal"
 
 [dependencies.hyper-component]
-workspace = true
+path = "../../lib/component"
 
 [dependencies.hyper-component-config]
-workspace = true
+path = "../../lib/component-config"
 
 [dependencies.hyper-bootstrap-handoff]
-workspace = true
+path = "../../lib/bootstrap-handoff"
 
 [dependencies.hyper-service-ipc]
-workspace = true
-
-[dependencies.hyper-vm-policy]
-workspace = true
+path = "../../lib/service-ipc"
 
 [dependencies.serde]
-workspace = true
+version = "1"
 features = ["derive"]
 
 [dependencies.serde_json]
-workspace = true
+version = "1"
 
 [lints]
 
@@ -82,5 +74,28 @@ check-cfg = ["cfg(target_os, values(\"hyper\"))"]
 [target."cfg(target_os = \"hyper\")".dependencies]
 
 [target."cfg(target_os = \"hyper\")".dependencies.hyper-vm-policy-shared]
-workspace = true
-optional = true
+path = "../../lib/vm-policy/shared"
+default-features = false
+
+[target."cfg(not(target_os = \"hyper\"))"]
+
+[target."cfg(not(target_os = \"hyper\"))".dependencies]
+
+[target."cfg(not(target_os = \"hyper\"))".dependencies.hyper-vm-policy]
+path = "../../lib/vm-policy"
+
+[workspace]
+resolver = "3"
+members = []
+
+[profile]
+
+[profile.release]
+codegen-units = 1
+debug = 1
+incremental = false
+lto = "fat"
+opt-level = "s"
+overflow-checks = true
+panic = "abort"
+strip = "none"
