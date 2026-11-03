@@ -18,3 +18,8 @@ python3 project.py test system-startup
 
 Paths in the documentation are relative to the repo-managed workspace root.
 Edit this repository and prepare the workspace again before building.
+
+Completion polling retains the original operation deadline through process wait
+and each management RPC. A new status query cannot renew the overall budget.
+RPC encoding/protocol failures remain distinct diagnostics from Native transport
+failures; timeout does not fabricate retirement or release retained owners.

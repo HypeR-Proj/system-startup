@@ -382,7 +382,7 @@ impl Runtime {
             .wait_terminated(deadline)
             .map_err(LaunchError::service_operation)?;
         loop {
-            let reply: hyper_component::Reply = hyper_service_ipc::request(
+            let reply: hyper_component::Reply = hyper_service_ipc::request_until(
                 self.launcher
                     .authorities
                     .observe
@@ -392,8 +392,9 @@ impl Runtime {
                 &hyper_component::Request::Status {
                     path: Some(path.into()),
                 },
+                deadline,
             )
-            .map_err(LaunchError::service_operation)?;
+            .map_err(LaunchError::rpc_operation)?;
             let state = reply
                 .snapshot
                 .components
