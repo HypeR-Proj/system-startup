@@ -170,6 +170,7 @@ pub(super) enum LaunchError {
     AuthorityConsumed,
     InvalidPlan,
     OperatingSystem,
+    ServiceProtocol,
     RequiredServiceUnavailable,
     ServiceUnavailable,
     UnsupportedAuthority,
@@ -191,6 +192,16 @@ impl LaunchError {
         }
     }
 
+    fn rpc_operation(error: hyper_service_ipc::RpcError) -> Self {
+        match error {
+            hyper_service_ipc::RpcError::Transport(error) => Self::service_operation(error),
+            error => {
+                eprintln!("HypeR system-startup: RPC failed: {error}");
+                Self::ServiceProtocol
+            }
+        }
+    }
+
     fn service_resources(error: hyper_os::Error) -> Self {
         eprintln!("HypeR system-startup: preparing resources failed: {error:?}");
         if supervision::service_resources_unavailable(&error) {
@@ -207,6 +218,9 @@ impl LaunchError {
             }
             Self::InvalidPlan => b"HypeR system-startup: invalid launch plan\n",
             Self::OperatingSystem => b"HypeR system-startup: service launch operation failed\n",
+            Self::ServiceProtocol => {
+                b"HypeR system-startup: service RPC encoding or protocol failed\n"
+            }
             Self::RequiredServiceUnavailable => {
                 b"HypeR system-startup: startup provider unavailable\n"
             }
