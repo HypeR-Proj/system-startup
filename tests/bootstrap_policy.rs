@@ -92,9 +92,13 @@ from pathlib import Path
 sys.path.insert(0, 'build/system/scripts')
 from board_bootstrap import services
 from board_config import Board
+from buildsystem.model import manifest_directory, manifest_path
 root = Path.cwd()
-print(json.dumps({path.stem: services(Board.load(path), root)
-                  for path in sorted((root / '.repo/manifests/products').glob('*.json'))}))
+products = manifest_directory(manifest_path(root)) / 'products'
+paths = sorted(products.glob('*.json'))
+if not paths:
+    raise ValueError(f'no board products found in {products}')
+print(json.dumps({path.stem: services(Board.load(path), root) for path in paths}))
 "#,
         ])
         .current_dir(root)
