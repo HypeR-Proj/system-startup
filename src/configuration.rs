@@ -307,6 +307,10 @@ impl Configuration {
                 "bootstrap.object-inspector" => 7,
                 "bootstrap.memory-inspector" => 8,
                 "bootstrap.cpu-inspector" => 9,
+                "bootstrap.executable-authority" => 38,
+                "bootstrap.task-factory" => 3,
+                "bootstrap.task-group" => 30,
+                "bootstrap.resource-domain" => 5,
                 _ => return Err("unsupported object export source".into()),
             };
             let index = self
@@ -362,6 +366,10 @@ fn exportable(source: &str) -> bool {
             | "bootstrap.object-inspector"
             | "bootstrap.memory-inspector"
             | "bootstrap.cpu-inspector"
+            | "bootstrap.executable-authority"
+            | "bootstrap.task-factory"
+            | "bootstrap.task-group"
+            | "bootstrap.resource-domain"
     )
 }
 

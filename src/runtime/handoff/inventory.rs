@@ -49,7 +49,8 @@ const STORAGE_HANDOFF: u16 = 34;
 const FILESYSTEM_HANDOFF: u16 = 35;
 const CONSOLE_DRAIN: u16 = 36;
 const ROOT_TRANSITION: u16 = 37;
-const LAST_ROLE: u16 = ROOT_TRANSITION;
+const EXECUTABLE_AUTHORITY: u16 = 38;
+const LAST_ROLE: u16 = EXECUTABLE_AUTHORITY;
 
 const PROCESS_BASE: u16 = 100;
 const MAX_SLOTS: usize = 64;
@@ -69,6 +70,7 @@ fn receive_slot(slot: &Slot) -> hyper_os::Result<CapabilityReceiveSlot> {
             CapabilityReceiveSlot::new::<DirectoryObject>(rights)
         }
         LIBRARY_DIRECTORY => CapabilityReceiveSlot::new::<DirectoryObject>(rights),
+        EXECUTABLE_AUTHORITY => CapabilityReceiveSlot::new::<ExecutableAuthorityObject>(rights),
         ROOT_TRANSITION => CapabilityReceiveSlot::new::<RootTransitionObject>(rights),
         FACTORY => CapabilityReceiveSlot::new::<TaskFactoryObject>(rights),
         GROUP => CapabilityReceiveSlot::new::<TaskGroupObject>(rights),
@@ -164,6 +166,7 @@ pub(super) fn adopt(
         filesystem_provider: r.optional(FILESYSTEM_PROVIDER)?,
         filesystem_control_server: r.optional(FILESYSTEM_CONTROL_SERVER)?,
         filesystem_control_client: r.optional(FILESYSTEM_CONTROL_CLIENT)?,
+        executable: r.optional(EXECUTABLE_AUTHORITY)?,
         vm_creation: r.optional(VM_AUTHORITY)?,
         vm_fleet: None,
         vm_connection: None,

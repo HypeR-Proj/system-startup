@@ -36,7 +36,7 @@ pub(super) fn validate_inventory(slots: &[Slot], core_count: usize) -> hyper_os:
             ROOT_DIRECTORY..=LOG_SERVER
                 | IO_BROKER_SERVER..=FILESYSTEM_CONTROL_CLIENT
                 | VM_AUTHORITY
-                | SYSTEM_GROUP..=ROOT_TRANSITION
+                | SYSTEM_GROUP..=EXECUTABLE_AUTHORITY
         ) && !(PROCESS_BASE..PROCESS_BASE + MAX_SERVICES as u16).contains(&slot.key)
         {
             return Err(hyper_os::Error::InvalidResponse);
@@ -259,6 +259,7 @@ pub(in crate::runtime::handoff) fn validate_service_sources(
                 BootstrapAuthority::ObjectInspector => OBJECT_INSPECTOR,
                 BootstrapAuthority::MemoryInspector => MEMORY_INSPECTOR,
                 BootstrapAuthority::CpuInspector => CPU_INSPECTOR,
+                BootstrapAuthority::ExecutableAuthority => EXECUTABLE_AUTHORITY,
                 BootstrapAuthority::VmAuthority => VM_AUTHORITY,
                 BootstrapAuthority::DeviceAuthority => DEVICE,
                 BootstrapAuthority::IoReadyChannel => IO_READY,

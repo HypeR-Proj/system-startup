@@ -191,3 +191,91 @@ fn launch_inventory_identifies_instances_instead_of_reused_declarations()
     assert_eq!(names, ["/journal", "/retire"]);
     Ok(())
 }
+
+#[test]
+fn executable_export_requires_real_authority_before_handoff()
+-> Result<(), Box<dyn std::error::Error>> {
+    use hyper_os::handle::ExecutableAuthorityObject;
+    let mut c = configuration()?;
+    let kind = hyper_component_config::CapabilityType::Object {
+        object_type: ExecutableAuthorityObject::KIND.as_raw(),
+        rights: Rights::CREATE_EXECUTABLE.bits(),
+    };
+    c.policy.exports[0].source = "bootstrap.executable-authority".into();
+    // The topology is already resolved; update both declaration and resolved
+    // route so this exercises export source/type/rights and live inventory.
+    for instance in &mut c.topology.instances {
+        for capability in &mut instance.declaration.capabilities {
+            capability.kind = kind.clone();
+        }
+    }
+    for route in &mut c.topology.routes {
+        route.kind = kind.clone();
+    }
+    c.validate()?;
+    assert!(c.validate_export_inventory([]).is_err());
+    assert!(
+        c.validate_export_inventory([(38, Rights::CREATE_EXECUTABLE.bits())])
+            .is_err()
+    );
+    c.validate_export_inventory([(
+        38,
+        Rights::CREATE_EXECUTABLE
+            .union(Rights::DUPLICATE)
+            .union(Rights::TRANSFER)
+            .bits(),
+    )])?;
+    Ok(())
+}
+
+#[test]
+fn construction_exports_require_explicit_matching_inventory()
+-> Result<(), Box<dyn std::error::Error>> {
+    use hyper_os::handle::{ResourceDomainObject, TaskFactoryObject, TaskGroupObject};
+    for (source, key, object_type, rights) in [
+        (
+            "bootstrap.task-factory",
+            3,
+            TaskFactoryObject::KIND.as_raw(),
+            Rights::CREATE_PROCESS,
+        ),
+        (
+            "bootstrap.task-group",
+            30,
+            TaskGroupObject::KIND.as_raw(),
+            Rights::TASK_GROUP_ATTACH_PROCESS,
+        ),
+        (
+            "bootstrap.resource-domain",
+            5,
+            ResourceDomainObject::KIND.as_raw(),
+            Rights::RESOURCE_DOMAIN_SPONSOR,
+        ),
+    ] {
+        let mut c = configuration()?;
+        let kind = hyper_component_config::CapabilityType::Object {
+            object_type,
+            rights: rights.bits(),
+        };
+        c.policy.exports[0].source = source.into();
+        for instance in &mut c.topology.instances {
+            for capability in &mut instance.declaration.capabilities {
+                capability.kind = kind.clone();
+            }
+        }
+        for route in &mut c.topology.routes {
+            route.kind = kind.clone();
+        }
+        c.validate()?;
+        assert!(c.validate_export_inventory([]).is_err());
+        assert!(c.validate_export_inventory([(key, rights.bits())]).is_err());
+        c.validate_export_inventory([(
+            key,
+            rights
+                .union(Rights::DUPLICATE)
+                .union(Rights::TRANSFER)
+                .bits(),
+        )])?;
+    }
+    Ok(())
+}

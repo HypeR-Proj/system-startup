@@ -313,3 +313,34 @@ fn virtual_console_owns_shell_launch_and_bootstrap_rejects_old_client_endpoints(
 fn ordinary_services_cannot_receive_namespace_management_authority() {
     assert!(!super::root_directory_rights().contains(Rights::MANAGE_NAMESPACE));
 }
+
+#[test]
+fn executable_publication_requires_an_explicit_attenuated_grant() -> Result<(), String> {
+    let text = r#"{"format":"hyper.service-manifest","services":[{
+        "name":"compiler", "image":"/bin/compiler", "critical":false,
+        "restart":"never", "after":[], "capabilities":[{
+            "source":"bootstrap.executable-authority", "purpose":"executable-authority",
+            "operation":"duplicate", "rights":["create-executable"]
+        }]
+    }]}"#;
+    let manifest = manifest::parse(text).map_err(|error| format!("{error:?}"))?;
+    let plan =
+        manifest::validate(&manifest, &BootstrapPolicy).map_err(|error| format!("{error:?}"))?;
+    let grant = plan
+        .capability_grant(0, 0)
+        .ok_or("missing executable grant")?;
+    assert_eq!(
+        grant.purpose(),
+        hyper_os::startup::EXECUTABLE_AUTHORITY.as_raw()
+    );
+    assert_eq!(grant.rights(), Rights::CREATE_EXECUTABLE.bits());
+    assert!(plan.capability_grant(0, 1).is_none());
+    for invalid in [
+        text.replace("create-executable", "inspect"),
+        text.replace("create-executable", "write"),
+    ] {
+        let manifest = manifest::parse(&invalid).map_err(|error| format!("{error:?}"))?;
+        assert!(manifest::validate(&manifest, &BootstrapPolicy).is_err());
+    }
+    Ok(())
+}

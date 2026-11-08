@@ -41,3 +41,18 @@ Completion polling retains the original operation deadline through process wait
 and each management RPC. A new status query cannot renew the overall budget.
 RPC encoding/protocol failures remain distinct diagnostics from Native transport
 failures; timeout does not fabricate retirement or release retained owners.
+
+Executable publication authority is retained from bootstrap but is not granted to
+ordinary programs by default. A deployment must declare an object capability of
+Native type `8`, export it from `bootstrap.executable-authority`, and route it
+through explicit `offer`/`use` declarations to startup purpose `4`. Its operational
+right is `CREATE_EXECUTABLE`; delegation rights must also exist in the actual
+handoff inventory. Missing or insufficient inventory rejects the export before
+ownership transfer. Publishing code does not imply permission to launch or
+control another process.
+
+Explicit realm exports may also delegate `bootstrap.task-factory`,
+`bootstrap.task-group`, and `bootstrap.resource-domain`. Their configured rights
+are checked against the actual inventory; no default application receives these
+grants. The task-group source is the formal system group, not the retained
+bootstrap group.
