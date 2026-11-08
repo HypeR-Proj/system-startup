@@ -104,6 +104,20 @@ impl Runtime {
         if manager.is_none() {
             self.launcher.authorities.close_unstarted_vm_manager()?;
         }
+        // Create the endpoint before early interactive services receive grants.
+        // The provider receives its server during adoption; no random data or
+        // provider startup dependency is needed to prepare the terminal.
+        if config
+            .policy
+            .providers
+            .iter()
+            .any(|provider| provider.random)
+        {
+            let (server, client) = hyper_os::capability_channel::CapabilityChannel::create()
+                .map_err(LaunchError::service_resources)?;
+            self.launcher.authorities.random_server = Some(server.into_handle());
+            self.launcher.authorities.random_client = Some(client.into_handle());
+        }
         // Prepare the terminal early, alongside ordinary service logging.
         // The first shell is gated separately and cannot race provider adoption.
         for app in config.policy.applications.iter().filter(|a| a.interactive) {
@@ -117,11 +131,17 @@ impl Runtime {
                 let p = config
                     .program(&provider.component)
                     .map_err(|_| LaunchError::InvalidPlan)?;
+                if role == 1 && !provider.random {
+                    self.launcher.authorities.random_server.take();
+                }
                 storage_adopted =
                     storage_adopted && self.adopt_provider(role, &provider.component, p).is_ok();
                 adopted &= storage_adopted;
             }
         }
+        // If adoption was skipped or failed before moving the server, close it
+        // while retaining client handles so callers observe unavailability.
+        self.launcher.authorities.random_server.take();
         self.retirement_ready = adopted
             && self.providers.iter().enumerate().all(|(role, index)| {
                 index.is_none() || provider(["console", "storage", "filesystem"][role]).is_some()

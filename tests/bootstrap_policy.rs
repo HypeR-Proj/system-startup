@@ -89,12 +89,12 @@ fn generated_board_services_preserve_bootstrap_authority_bounds() -> Result<(), 
             "-c",
             r#"import json, sys
 from pathlib import Path
-sys.path.insert(0, 'scripts')
+sys.path.insert(0, 'build/system/scripts')
 from board_bootstrap import services
 from board_config import Board
 root = Path.cwd()
 print(json.dumps({path.stem: services(Board.load(path), root)
-                  for path in sorted((root / 'boards').glob('*.json'))}))
+                  for path in sorted((root / '.repo/manifests/products').glob('*.json'))}))
 "#,
         ])
         .current_dir(root)
@@ -342,5 +342,42 @@ fn executable_publication_requires_an_explicit_attenuated_grant() -> Result<(), 
         let manifest = manifest::parse(&invalid).map_err(|error| format!("{error:?}"))?;
         assert!(manifest::validate(&manifest, &BootstrapPolicy).is_err());
     }
+    Ok(())
+}
+
+#[test]
+fn random_client_is_explicit_delegation_without_provider_read_authority() -> Result<(), String> {
+    let text = r#"{"format":"hyper.service-manifest","services":[{
+        "name":"tool", "image":"/bin/tool", "critical":false,
+        "restart":"never", "after":[], "capabilities":[{
+            "source":"random.client", "purpose":"random.client",
+            "operation":"duplicate", "rights":["write","wait","duplicate","transfer"]
+        }]
+    }]}"#;
+    let manifest = manifest::parse(text).map_err(|error| format!("{error:?}"))?;
+    let plan =
+        manifest::validate(&manifest, &BootstrapPolicy).map_err(|error| format!("{error:?}"))?;
+    let grant = plan
+        .capability_grant(0, 0)
+        .ok_or("missing random client grant")?;
+    assert_eq!(grant.purpose(), hyper_service::random::CLIENT.as_raw());
+    assert_eq!(
+        grant.rights(),
+        hyper_service::random::DELEGATED_CLIENT_RIGHTS.bits()
+    );
+    for invalid in [
+        text.replace("\"write\",", ""),
+        text.replace("\"wait\",", ""),
+        text.replace("\"write\"", "\"write\",\"read\""),
+        text.replace("\"operation\":\"duplicate\"", "\"operation\":\"move\""),
+    ] {
+        let manifest = manifest::parse(&invalid).map_err(|error| format!("{error:?}"))?;
+        assert!(manifest::validate(&manifest, &BootstrapPolicy).is_err());
+    }
+    assert!(
+        BootstrapPolicy
+            .startup_purpose("/bin/tool", "random.server")
+            .is_none()
+    );
     Ok(())
 }

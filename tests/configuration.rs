@@ -92,6 +92,33 @@ fn adoption_requires_residency_before_ownership_commit() -> Result<(), Box<dyn s
 }
 
 #[test]
+fn random_provider_requires_a_storage_role_and_boolean_declaration()
+-> Result<(), Box<dyn std::error::Error>> {
+    for role in ["storage", "console", "filesystem"] {
+        let mut c = configuration_with(vec![
+            json!({"name":"io", "program":{"image":"/svc/io-runtime","prepared":true,"resident":true}}),
+        ])?;
+        c.policy.providers = serde_json::from_value(json!([
+            {"role":role,"component":"/io","random":true}
+        ]))?;
+        assert_eq!(c.validate().is_ok(), role == "storage");
+    }
+    for invalid in [json!(0), json!(1), json!("true"), json!(null), json!([])] {
+        assert!(
+            serde_json::from_value::<crate::configuration::Provider>(json!({
+                "role":"storage","component":"/io","random":invalid
+            }))
+            .is_err()
+        );
+    }
+    let omitted: crate::configuration::Provider = serde_json::from_value(json!({
+        "role":"storage","component":"/io"
+    }))?;
+    assert!(!omitted.random);
+    Ok(())
+}
+
+#[test]
 fn storage_profiles_select_only_declared_resident_replacements()
 -> Result<(), Box<dyn std::error::Error>> {
     let mut c = configuration_with(vec![

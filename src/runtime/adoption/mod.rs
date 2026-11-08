@@ -119,6 +119,14 @@ impl Runtime {
             0x8008_0010,
             Rights::READ.union(Rights::WRITE).union(Rights::WAIT),
         )?;
+        if let Some(random_server) = self.launcher.authorities.random_server.take() {
+            move_handle(
+                &builder,
+                random_server,
+                hyper_service::random::SERVER.as_raw(),
+                hyper_service::random::SERVER_RIGHTS,
+            )?;
+        }
         move_handle(&builder, ready, READY, Rights::WRITE.union(Rights::WAIT))?;
         self.start_provider(index, builder)?;
         ready_message(&reader, ADOPTED, until)?;
