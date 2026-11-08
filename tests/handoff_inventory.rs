@@ -391,3 +391,17 @@ fn fresh_console_clients_are_not_limited_by_predecessor_propagation_rights() -> 
     assert!(validate_service_sources(&slots, &plan, 0, [None; 3]).is_err());
     Ok(())
 }
+
+#[test]
+fn executable_authority_has_an_optional_handoff_slot() -> hyper_os::Result<()> {
+    let rights = Rights::CREATE_EXECUTABLE
+        .union(Rights::DUPLICATE)
+        .union(Rights::TRANSFER);
+    let mut slots = basic();
+    slots.push(Slot {
+        key: EXECUTABLE_AUTHORITY,
+        rights: rights.bits(),
+    });
+    validate_inventory(&slots, 0)?;
+    Ok(())
+}

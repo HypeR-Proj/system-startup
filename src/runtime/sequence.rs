@@ -350,10 +350,19 @@ impl Runtime {
                 "bootstrap.root-directory" => {
                     duplicate!(Directory, a.root_directory.as_handle_ref())
                 }
+                "bootstrap.task-factory" => duplicate!(Factory, a.factory),
+                "bootstrap.task-group" => duplicate!(Group, a.group),
+                "bootstrap.resource-domain" => duplicate!(Domain, a.domain),
                 "bootstrap.task-inspector" => duplicate!(TaskInspector, a.task_inspector),
                 "bootstrap.object-inspector" => duplicate!(ObjectInspector, a.object_inspector),
                 "bootstrap.memory-inspector" => duplicate!(MemoryInspector, a.memory_inspector),
                 "bootstrap.cpu-inspector" => duplicate!(CpuInspector, a.cpu_inspector),
+                "bootstrap.executable-authority" => duplicate!(
+                    ExecutableAuthority,
+                    a.executable
+                        .as_ref()
+                        .ok_or(LaunchError::UnsupportedAuthority)?
+                ),
                 _ => return Err(LaunchError::InvalidPlan),
             };
             hyper_component::installation::export(

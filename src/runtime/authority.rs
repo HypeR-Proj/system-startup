@@ -7,9 +7,9 @@ use crate::manifest::{CapabilityGrant, CapabilityOperation};
 use hyper_os::fs::{Directory, File, FileRights};
 use hyper_os::handle::{
     ByteChannelObject, CapabilityChannelObject, ConsoleObject, CpuInspectorObject,
-    DeviceAssignmentAuthorityObject, DirectoryObject, FileObject, MemoryInspectorObject,
-    ObjectInspectorObject, OwnedHandle, ResourceDomainObject, Rights, RightsOffer,
-    TaskFactoryObject, TaskGroupObject, TaskInspectorObject, TypedObject,
+    DeviceAssignmentAuthorityObject, DirectoryObject, ExecutableAuthorityObject, FileObject,
+    MemoryInspectorObject, ObjectInspectorObject, OwnedHandle, ResourceDomainObject, Rights,
+    RightsOffer, TaskFactoryObject, TaskGroupObject, TaskInspectorObject, TypedObject,
     VirtualMachineCreationAuthorityObject,
 };
 use hyper_os::task::ProcessBuilder;
@@ -31,6 +31,7 @@ pub(super) struct AuthorityInventory {
     pub(super) factory: OwnedHandle<TaskFactoryObject>,
     pub(super) group: OwnedHandle<TaskGroupObject>,
     pub(super) domain: OwnedHandle<ResourceDomainObject>,
+    pub(super) executable: Option<OwnedHandle<ExecutableAuthorityObject>>,
     pub(super) vm_creation: Option<OwnedHandle<VirtualMachineCreationAuthorityObject>>,
     pub(super) vm_fleet: Option<VmFleet>,
     pub(super) vm_connection: Option<VmManagerConnection>,
@@ -214,6 +215,18 @@ impl AuthorityInventory {
             {
                 builder.add_handle_duplicate(
                     self.device
+                        .as_ref()
+                        .ok_or(LaunchError::UnsupportedAuthority)?
+                        .as_handle_ref(),
+                    purpose,
+                    offer,
+                )
+            }
+            (BootstrapAuthority::ExecutableAuthority, CapabilityOperation::Duplicate)
+                if kind == ExecutableAuthorityObject::KIND.as_raw() =>
+            {
+                builder.add_handle_duplicate(
+                    self.executable
                         .as_ref()
                         .ok_or(LaunchError::UnsupportedAuthority)?
                         .as_handle_ref(),

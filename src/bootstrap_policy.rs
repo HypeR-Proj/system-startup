@@ -9,9 +9,9 @@ use crate::manifest::{
 };
 use hyper_os::handle::{
     ByteChannelObject, CapabilityChannelObject, ConsoleObject, CpuInspectorObject,
-    DeviceAssignmentAuthorityObject, DirectoryObject, FileObject, MemoryInspectorObject,
-    ObjectInspectorObject, ResourceDomainObject, Rights, TaskFactoryObject, TaskGroupObject,
-    TaskInspectorObject, TypedObject, VirtualMachineCreationAuthorityObject,
+    DeviceAssignmentAuthorityObject, DirectoryObject, ExecutableAuthorityObject, FileObject,
+    MemoryInspectorObject, ObjectInspectorObject, ResourceDomainObject, Rights, TaskFactoryObject,
+    TaskGroupObject, TaskInspectorObject, TypedObject, VirtualMachineCreationAuthorityObject,
 };
 use hyper_service::{
     StartupContract, console as console_contract, process as process_contract,
@@ -68,6 +68,7 @@ define_bootstrap_authorities! {
     ChildLoader = 35 => "bootstrap.child-loader",
     EnvironmentDirectory = 36 => "bootstrap.environment-directory",
     BootEnvironmentDirectory = 37 => "bootstrap.boot-environment-directory",
+    ExecutableAuthority = 38 => "bootstrap.executable-authority",
     RootDirectory = 12 => "bootstrap.root-directory",
     DynamicLibraryDirectory = 13 => "bootstrap.dynamic-library-directory",
     TaskFactory = 14 => "bootstrap.task-factory",
@@ -179,6 +180,11 @@ impl AuthorityPolicy for BootstrapPolicy {
                     .union(Rights::SET_ATTRIBUTES)
                     .union(Rights::INSPECT_DETAILS),
             ),
+            BootstrapAuthority::ExecutableAuthority => duplicate_authority(
+                authority,
+                ExecutableAuthorityObject::KIND.as_raw(),
+                executable_authority_rights(),
+            ),
             BootstrapAuthority::VmAuthority => duplicate_authority(
                 authority,
                 VirtualMachineCreationAuthorityObject::KIND.as_raw(),
@@ -244,6 +250,14 @@ impl AuthorityPolicy for BootstrapPolicy {
     }
 
     fn startup_purpose(&self, image: &str, name: &str) -> Option<StartupPurposeDeclaration> {
+        if name == "executable-authority" {
+            return Some(StartupPurposeDeclaration {
+                value: hyper_os::startup::EXECUTABLE_AUTHORITY.as_raw(),
+                object_kind: ExecutableAuthorityObject::KIND.as_raw(),
+                required_rights: Rights::CREATE_EXECUTABLE.bits(),
+                allowed_rights: executable_authority_rights().bits(),
+            });
+        }
         if name == "filesystem.control-client" {
             return Some(contract_declaration(
                 hyper_service::filesystem::DELEGATED_CONTROL_CLIENT_CONTRACT,
@@ -342,6 +356,7 @@ impl AuthorityPolicy for BootstrapPolicy {
             "sched-priority" => Some(Rights::SCHED_PRIORITY.bits()),
             "sched-class" => Some(Rights::SCHED_CLASS.bits()),
             "sched-budget" => Some(Rights::SCHED_BUDGET.bits()),
+            "create-executable" => Some(Rights::CREATE_EXECUTABLE.bits()),
             "create-process" => Some(Rights::CREATE_PROCESS.bits()),
             "retain-process" => Some(Rights::RETAIN_PROCESS.bits()),
             "create-task-group" => Some(Rights::CREATE_TASK_GROUP.bits()),
@@ -473,6 +488,13 @@ const fn resource_domain_rights() -> Rights {
         .union(Rights::INSPECT)
         .union(Rights::CREATE_RESOURCE_DOMAIN)
         .union(Rights::RESOURCE_DOMAIN_SPONSOR)
+}
+
+const fn executable_authority_rights() -> Rights {
+    Rights::CREATE_EXECUTABLE
+        .union(Rights::INSPECT)
+        .union(Rights::DUPLICATE)
+        .union(Rights::TRANSFER)
 }
 
 const fn vm_authority_rights() -> Rights {
