@@ -49,6 +49,8 @@ pub(super) struct AuthorityInventory {
     pub(super) storage_handoff: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) filesystem_handoff: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) io_broker_server: Option<OwnedHandle<CapabilityChannelObject>>,
+    pub(super) random_server: Option<OwnedHandle<CapabilityChannelObject>>,
+    pub(super) random_client: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) io_broker_client: Option<OwnedHandle<CapabilityChannelObject>>,
     pub(super) io_ready_channel: Option<OwnedHandle<ByteChannelObject>>,
     pub(super) filesystem_attach: Option<OwnedHandle<CapabilityChannelObject>>,
@@ -279,6 +281,18 @@ impl AuthorityInventory {
                         *slot = Some(handle);
                         LaunchError::service_resources(error)
                     });
+            }
+            (BootstrapAuthority::RandomClient, CapabilityOperation::Duplicate)
+                if kind == CapabilityChannelObject::KIND.as_raw() =>
+            {
+                builder.add_handle_duplicate(
+                    self.random_client
+                        .as_ref()
+                        .ok_or(LaunchError::UnsupportedAuthority)?
+                        .as_handle_ref(),
+                    purpose,
+                    offer,
+                )
             }
             (BootstrapAuthority::ConsoleController, CapabilityOperation::Duplicate)
                 if kind == CapabilityChannelObject::KIND.as_raw() =>

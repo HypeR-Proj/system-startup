@@ -160,6 +160,8 @@ pub(super) fn adopt(
         storage_handoff: r.optional(STORAGE_HANDOFF)?,
         filesystem_handoff: r.optional(FILESYSTEM_HANDOFF)?,
         io_broker_server: r.optional(IO_BROKER_SERVER)?,
+        random_server: None,
+        random_client: None,
         io_broker_client: r.optional(IO_BROKER_CLIENT)?,
         io_ready_channel: r.optional(IO_READY)?,
         filesystem_attach: r.optional(FILESYSTEM_ATTACH)?,

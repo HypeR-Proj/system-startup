@@ -56,3 +56,11 @@ Explicit realm exports may also delegate `bootstrap.task-factory`,
 are checked against the actual inventory; no default application receives these
 grants. The task-group source is the formal system group, not the retained
 bootstrap group.
+
+Storage provider declarations may opt into `"random": true`. Startup creates a
+client/server pair before launching the early terminal, then transfers the server
+only to the selected provider that declares support. Unselected or failed
+pre-transfer adoption closes the server so retained clients observe failure.
+Ordinary startup applications receive the client only through explicit
+`random.client` grants; no provider-side read right is delegated. A custom storage
+provider without this declaration receives no random endpoint.

@@ -233,7 +233,8 @@ pub(in crate::runtime::handoff) fn validate_service_sources(
             let key = match authority {
                 BootstrapAuthority::ComponentObserve
                 | BootstrapAuthority::ComponentControl
-                | BootstrapAuthority::JournalQuery => continue,
+                | BootstrapAuthority::JournalQuery
+                | BootstrapAuthority::RandomClient => continue,
                 BootstrapAuthority::Console => CONSOLE,
                 // Confirmed console adoption publishes fresh full-rights client
                 // endpoints before launching the formal graph. Old controller

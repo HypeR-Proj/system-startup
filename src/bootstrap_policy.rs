@@ -60,6 +60,7 @@ define_bootstrap_authorities! {
     ComponentObserve = 40 => "component.observe",
     ComponentControl = 41 => "component.control",
     JournalQuery = 42 => "journal.query",
+    RandomClient = 43 => "random.client",
     Console = 1 => "bootstrap.console",
     ConsoleControlServer = 2 => "bootstrap.console-control-server",
     ConsoleController = 3 => "bootstrap.console-controller",
@@ -108,6 +109,7 @@ impl AuthorityPolicy for BootstrapPolicy {
             BootstrapAuthority::ComponentObserve
             | BootstrapAuthority::ComponentControl
             | BootstrapAuthority::JournalQuery
+            | BootstrapAuthority::RandomClient
             | BootstrapAuthority::ConsoleController
             | BootstrapAuthority::ConsoleLogConnector => duplicate_authority(
                 authority,
@@ -257,6 +259,11 @@ impl AuthorityPolicy for BootstrapPolicy {
                 required_rights: Rights::CREATE_EXECUTABLE.bits(),
                 allowed_rights: executable_authority_rights().bits(),
             });
+        }
+        if name == "random.client" {
+            return Some(contract_declaration(
+                hyper_service::random::DELEGATED_CLIENT_CONTRACT,
+            ));
         }
         if name == "filesystem.control-client" {
             return Some(contract_declaration(

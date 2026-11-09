@@ -37,6 +37,9 @@ pub struct Application {
 pub struct Provider {
     pub role: String,
     pub component: String,
+    /// Accepts the initialized-random server endpoint during storage adoption.
+    #[serde(default)]
+    pub random: bool,
 }
 
 /// Bind existing startup authority to an explicitly declared realm capability.
@@ -202,7 +205,8 @@ impl Configuration {
         let mut paths = std::collections::BTreeSet::new();
         let mut roles = std::collections::BTreeSet::new();
         for provider in &self.policy.providers {
-            if !matches!(provider.role.as_str(), "console" | "storage" | "filesystem")
+            if (provider.random && provider.role != "storage")
+                || !matches!(provider.role.as_str(), "console" | "storage" | "filesystem")
                 || (provider.role != "storage" && !roles.insert(&provider.role))
             {
                 return Err("duplicate or unknown provider role".into());
